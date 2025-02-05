@@ -1,41 +1,32 @@
 import pygame
 import sys
-from classes.constants import WIDTH, HEIGHT, BLACK, RED, WHITE
-
+from classes.constants import WIDTH, HEIGHT, BLACK
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
-def music_background():
-    pygame.mixer.music.load('game_sounds/background_music.mp3')
-    pygame.mixer.music.set_volume(0.25)
-    pygame.mixer.music.play(loops=-1)
 
-
+#  окно при смерти
 def show_game_over(score):
-    font = pygame.font.SysFont('Impact', 50)
-    font_small = pygame.font.SysFont('Impact', 30)
-    text = font.render("GAME OVER", True, (139, 0, 0))
-    text_rect = text.get_rect(center=(WIDTH/2, HEIGHT/2 - 50))
-    score_text = font_small.render(f"Final Score: {score}", True, (255, 255, 255))
-    score_rect = score_text.get_rect(center=(WIDTH/2, HEIGHT/2 + 50))
+    font = pygame.font.SysFont('arial black', 90)
+    font_small = pygame.font.SysFont('arial black', 60)
+    text = font.render("ВЫ ПРОИГРАЛИ(", True, '#b30000')
+    text_rect = text.get_rect(center=(WIDTH/2, HEIGHT/2 - 100))
+    score_text = font_small.render(f"Ваш счет: {score}", True, 'white')
+    score_rect = score_text.get_rect(center=(WIDTH/2, HEIGHT/2 + 35))
 
     screen.blit(text, text_rect)
     screen.blit(score_text, score_rect)
 
     flag = True
-    play_button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 - 25, 205, 50)
-
-
-    font = pygame.font.SysFont('Comic Sans MS', 40)
-    text = font.render("Try again", True, WHITE)
-    pygame.draw.rect(screen, BLACK, play_button_rect, border_radius=10)
-    pygame.draw.rect(screen, RED, play_button_rect, border_radius=10, width=4)
+    again_button_rect = pygame.Rect(WIDTH // 2 - 200, HEIGHT // 2 + 120, 400, 100)
+    font = pygame.font.SysFont('arial black', 60)
+    text = font.render("Еще раз", True, 'white')
+    pygame.draw.rect(screen, BLACK, again_button_rect, border_radius=10)
+    pygame.draw.rect(screen, 'white', again_button_rect, border_radius=10, width=4)
     text_rect = text.get_rect()
-    text_rect.center = play_button_rect.center
+    text_rect.center = again_button_rect.center
     screen.blit(text, text_rect)
 
     pygame.display.flip()
-    pygame.mixer.music.load('game_sounds/gameover.mp3')
-    pygame.mixer.music.play()
 
     while flag:
         for event in pygame.event.get():
@@ -45,8 +36,38 @@ def show_game_over(score):
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 x, y = event.pos
-                if play_button_rect.collidepoint(x, y):
+                if again_button_rect.collidepoint(x, y):
                     flag = False
                     break
 
-    music_background()
+
+# окно при победе
+def win():
+    font = pygame.font.SysFont('arial black', 90)
+    text = font.render("ПОБЕДА!!!", True, '#b30000')
+    text_rect = text.get_rect(center=(WIDTH/2, HEIGHT/2 - 100))
+    screen.blit(text, text_rect)
+
+    flag = True
+    again_button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 120, 200, 100)
+    font = pygame.font.SysFont('arial black', 60)
+    text = font.render("Ура", True, 'white')
+    pygame.draw.rect(screen, BLACK, again_button_rect, border_radius=10)
+    pygame.draw.rect(screen, 'white', again_button_rect, border_radius=10, width=4)
+    text_rect = text.get_rect()
+    text_rect.center = again_button_rect.center
+    screen.blit(text, text_rect)
+
+    pygame.display.flip()
+
+    while flag:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                x, y = event.pos
+                if again_button_rect.collidepoint(x, y):
+                    pygame.quit()
+                    sys.exit()

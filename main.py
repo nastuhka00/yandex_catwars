@@ -5,35 +5,29 @@ import random
 
 from controls import move_player
 from classes.constants import WIDTH, HEIGHT, FPS, SHOOT_DELAY
-from functions import show_game_over, music_background
+from functions import show_game_over, win
 from menu import show_menu
 
 from classes.player import Player
 from classes.bullets import Bullet
-from classes.refill import HealthRefill, DoubleRefill, ExtraScore
+from classes.refill import ExtraScore
 from classes.explosions import Explosion
 from classes.enemies import Enemy1, Meteors2
 
-
-
 pygame.init()
-music_background()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 surface = pygame.Surface((WIDTH, HEIGHT))
 pygame.display.set_caption("SVO")
 clock = pygame.time.Clock()
-
+score_logs = open('score_logs.txt', 'w')
 
 explosions = pygame.sprite.Group()
 explosions2 = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 enemy1_group = pygame.sprite.Group()
-health_refill_group = pygame.sprite.Group()
 meteor_group = pygame.sprite.Group()
 meteor2_group = pygame.sprite.Group()
 extra_score_group = pygame.sprite.Group()
-
-
 
 bg_y_shift = -HEIGHT
 background_img = pygame.image.load('images/bg/background.jpg').convert()
@@ -45,19 +39,14 @@ new_background_activated = False
 
 explosion_images = [pygame.image.load(f"images/explosion/explosion{i}.png") for i in range(8)]
 
-
 enemy1_img = [
     pygame.image.load('images/enemy/enemy1_1.png').convert_alpha(),
     pygame.image.load('images/enemy/enemy1_3.png').convert_alpha()
 ]
 
-
-health_refill_img = pygame.image.load('images/refill/health_refill.png').convert_alpha()
-
 meteor2_imgs = [
-    pygame.image.load('images/meteors/meteor2_1.png').convert_alpha(),
-    pygame.image.load('images/meteors/meteor2_2.png').convert_alpha(),
-    pygame.image.load('images/meteors/meteor2_3.png').convert_alpha(),
+    pygame.image.load('images/camni/meteor2_1.png').convert_alpha(),
+    pygame.image.load('images/camni/meteor2_2.png').convert_alpha()
 ]
 extra_score_img = pygame.image.load('images/score/score_coin.png').convert_alpha()
 
@@ -71,12 +60,13 @@ running = True
 
 if show_menu:
     import menu
+
     menu.main()
 
 is_shooting = False
 last_shot_time = 0
 
-
+#  основной цикл
 while running:
 
     for event in pygame.event.get():
@@ -107,15 +97,11 @@ while running:
                 player.image = player.original_image.copy()
                 is_shooting = False
 
-
-
-
+    # чтобы стрелял нормально, не пуля на пуле
     if pygame.time.get_ticks() - last_shot_time > SHOOT_DELAY and is_shooting:
         last_shot_time = pygame.time.get_ticks()
         bullet = Bullet(player.rect.centerx, player.rect.top)
         bullets.add(bullet)
-
-
 
     keys = pygame.key.get_pressed()
 
@@ -126,6 +112,7 @@ while running:
     background_top_rect.top = bg_y_shift + HEIGHT
     screen.blit(background_top, background_top_rect)
 
+    # смена фонов
     bg_y_shift += 1
     if bg_y_shift >= 0:
         bg_y_shift = -HEIGHT
@@ -142,8 +129,8 @@ while running:
         current_image = background_img3
         background_top = background_img3.copy()
 
-    #if score >= 15000 and new_background_activated:
-        #win()
+    if score >= 15000:
+        win()
 
     if score == 0:
         current_image = background_img
@@ -157,7 +144,9 @@ while running:
 
     if score > hi_score:
         hi_score = score
+        score_logs.write(f'Лучший счет: {hi_score} \n')
 
+    # спавн врагов
     if random.randint(0, 120) == 0:
         enemy_img = random.choice(enemy1_img)
         enemy_object = Enemy1(
@@ -166,8 +155,6 @@ while running:
             enemy_img,
         )
         enemy1_group.add(enemy_object)
-
-    # В основном игровом цикле
 
     if random.randint(0, 60) == 0:
         extra_score = ExtraScore(
@@ -178,7 +165,6 @@ while running:
 
         extra_score_group.add(extra_score)
 
-
     if random.randint(0, 90) == 0:
         meteor2_img = random.choice(meteor2_imgs)
         meteor2_object = Meteors2(
@@ -188,39 +174,18 @@ while running:
         )
         meteor2_group.add(meteor2_object)
 
-
+    #  смерть
     if player_life <= 0:
         show_game_over(score)
         score = 0
         player_life = 200
         player.rect.topleft = initial_player_pos
         bullets.empty()
-        health_refill_group.empty()
         extra_score_group.empty()
         meteor_group.empty()
         meteor2_group.empty()
         enemy1_group.empty()
         explosions.empty()
-
-        if score >= 5000:
-            meteor_object.speed = 4
-        if score >= 10000:
-            meteor_object.speed = 4
-
-    for health_refill in health_refill_group:
-        health_refill.update()
-        health_refill.draw(screen)
-
-        if player.rect.colliderect(health_refill.rect):
-            if player_life < 200:
-                player_life += 50
-                if player_life > 200:
-                    player_life = 200
-                health_refill.kill()
-                health_refill.sound_effect.play()
-            else:
-                health_refill.kill()
-                health_refill.sound_effect.play()
 
     for extra_score in extra_score_group:
         extra_score.update()
@@ -229,42 +194,6 @@ while running:
         if player.rect.colliderect(extra_score.rect):
             score += 20
             extra_score.kill()
-            extra_score.sound_effect.play()
-
-        if score >= 3000:
-            extra_score.speed = 2
-        if score >= 10000:
-            extra_score.speed = 4
-
-
-    for meteor_object in meteor_group:
-        meteor_object.update()
-        meteor_object.draw(screen)
-
-        if meteor_object.rect.colliderect(player.rect):
-            player_life -= 10
-            explosion = Explosion(meteor_object.rect.center, explosion_images)
-            explosions.add(explosion)
-            meteor_object.kill()
-            score += 50
-
-        bullet_collisions = pygame.sprite.spritecollide(meteor_object, bullets, True)
-        for bullet_collision in bullet_collisions:
-            explosion = Explosion(meteor_object.rect.center, explosion_images)
-            explosions.add(explosion)
-            meteor_object.kill()
-            score += 80
-
-            if random.randint(0, 10) == 0:
-                double_refill = DoubleRefill(
-                    meteor_object.rect.centerx,
-                    meteor_object.rect.centery,
-                )
-
-        if score >= 3000:
-            meteor_object.speed = 4
-        if score >= 10000:
-            meteor_object.speed = 6
 
     for meteor2_object in meteor2_group:
         meteor2_object.update()
@@ -284,15 +213,13 @@ while running:
             meteor2_object.kill()
             score += 40
 
-
-
         if score >= 3000:
             meteor2_object.speed = 4
         if score >= 10000:
             meteor2_object.speed = 6
 
     for enemy_object in enemy1_group:
-        enemy_object.update(enemy1_group, meteor_group)
+        enemy_object.update(enemy1_group)
         enemy1_group.draw(screen)
 
         if enemy_object.rect.colliderect(player.rect):
@@ -309,14 +236,6 @@ while running:
             enemy_object.kill()
             score += 50
 
-            if random.randint(0, 8) == 0:
-                health_refill = HealthRefill(
-                    random.randint(50, WIDTH - 30),
-                    random.randint(-HEIGHT, -30),
-                    health_refill_img,
-                )
-                health_refill_group.add(health_refill)
-
 
     player_image_copy = player.image.copy()
     screen.blit(player_image_copy, player.rect)
@@ -324,10 +243,6 @@ while running:
     for explosion in explosions:
         explosion.update()
         screen.blit(explosion.image, explosion.rect)
-
-    for explosion2 in explosions2:
-        explosion2.update()
-        screen.blit(explosion2.image, explosion2.rect)
 
     for bullet in bullets:
         bullet.update()
@@ -358,15 +273,15 @@ while running:
     life_x_pos = 10
     screen.blit(player_life_surface, (life_x_pos, 10))
 
-
-    score_surface = pygame.font.SysFont('Comic Sans MS', 30).render(f'{score}', True, (238, 232, 170))
+    score_surface = pygame.font.SysFont('arial black', 30).render(f'{score}', True, (238, 232, 170))
     score_image_rect = score_surface.get_rect()
     score_image_rect.x, score_image_rect.y = WIDTH - score_image_rect.width - extra_score_img.get_width() - 10, 10
 
-    screen.blit(extra_score_img, (score_image_rect.right + 5, score_image_rect.centery - extra_score_img.get_height()//2))
+    screen.blit(extra_score_img,
+                (score_image_rect.right + 5, score_image_rect.centery - extra_score_img.get_height() // 2))
     screen.blit(score_surface, score_image_rect)
 
-    hi_score_surface = pygame.font.SysFont('Comic Sans MS', 20).render(f'HIGHEST SCORE: {hi_score}', True, (255, 255, 255))
+    hi_score_surface = pygame.font.SysFont('arial black', 20).render(f'лучший счет: {hi_score}', True, (255, 255, 255))
     hi_score_surface.set_alpha(128)
     hi_score_x_pos = (screen.get_width() - hi_score_surface.get_width()) // 2
     hi_score_y_pos = 0
@@ -375,7 +290,9 @@ while running:
     pygame.display.flip()
 
     clock.tick(FPS)
-
+score_logs.close()
+score_logs = open("score_logs.txt", "r")
+print(score_logs.readlines()[-1])
 pygame.mixer.music.stop()
 pygame.quit()
 sys.exit()

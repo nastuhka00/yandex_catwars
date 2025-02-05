@@ -2,7 +2,7 @@ import pygame
 
 from .constants import WIDTH, HEIGHT
 
-
+#  управление
 class Player:
 
     def __init__(self):
